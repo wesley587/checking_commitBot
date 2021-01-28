@@ -115,7 +115,6 @@ class TelegraBot:
         monitoring[nome + '/' + repos] = True
         while monitoring[nome + '/' + repos]:
             sleep(self.seconds)
-            print('time')
             new = requests.get(f'https://api.github.com/repos/{nome}/{repos}/commits/main')
             new = json.loads(new.content)
             if not 'message' in new:
