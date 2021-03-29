@@ -10,7 +10,7 @@ class TelegraBot:
     def __init__(self, active_func=None, seconds=10):
         self.seconds = seconds
         self.active_func = active_func
-        token = 'your token' #pass your token
+        token = ''  # pass your token
         self.url_base = f'https://api.telegram.org/bot{token}/'
 
     def start(self):
@@ -43,19 +43,22 @@ class TelegraBot:
             self.__init__(active_func='/subscribe')
             analyzing = message.replace('/subscribe ', '')
             analyzing = analyzing.split(' ')
-            analyzed = []
-            if len(analyzed) > 2:
+            analyzed = list()
+            if len(analyzing) > 3:
                 for x in analyzing:
                     if x:
                         analyzed.append(x)
             else:
                 analyzed = analyzing.copy()
-            if f'{analyzed[0]}/{analyzed[1]}' in monitoring and f'{analyzed[0]}/{analyzed[1]}':
-                return self.answer('we are already analyzing this repository', chat_id)
-            if len(analyzed) == 2:
-                threading.Thread(target=self.commit, args=(analyzed[0], analyzed[1], chat_id)).start()
-            else:
-                return 'commando error, follow the instructions:\naccount_name repository_name'
+            try:
+                valid = analyzed[2]
+                if f'{analyzed[0]}/{analyzed[1]}' in monitoring and f'{analyzed[0]}/{analyzed[1]}':
+                    return self.answer('we are already analyzing this repository', chat_id)
+                if len(analyzed) == 3:
+                    threading.Thread(target=self.commit, args=(analyzed[0], analyzed[1], analyzed[2], chat_id)).start()
+            except:
+                return 'Error on command, use: /subscribe User_name Repository_name Branch'
+
         if message == '/menu':
             return self.menu()
         if '/sleep' in message:
@@ -92,11 +95,11 @@ class TelegraBot:
         else:
             return self.menu(error=True)
 
-    def commit(self, nome, repos, chat_id):
+    def commit(self, nome, repos, branch, chat_id):
         sleep(3)
         self.__init__(active_func=None)
         empty = False
-        response = requests.get(f'https://api.github.com/repos/{nome}/{repos}/commits/main')
+        response = requests.get(f'https://api.github.com/repos/{nome}/{repos}/commits/{branch}')
         content = json.loads(response.content)
         if 'node_id' in content:
             check = content['node_id']
@@ -115,7 +118,7 @@ class TelegraBot:
         monitoring[nome + '/' + repos] = True
         while monitoring[nome + '/' + repos]:
             sleep(self.seconds)
-            new = requests.get(f'https://api.github.com/repos/{nome}/{repos}/commits/main')
+            new = requests.get(f'https://api.github.com/repos/{nome}/{repos}/commits/{branch}')
             new = json.loads(new.content)
             if not 'message' in new:
                 empty = False
@@ -156,8 +159,10 @@ class TelegraBot:
             send_link = f'{self.url_base}sendMessage?chat_id={chat_id}&text={answer_txt}'
         requests.get(send_link)
 
+
 if __name__ == '__main__':
     bot = TelegraBot()
     a = threading.Thread()
     a.start()
     threading.Thread(target=bot.start).start()
+
